@@ -1,0 +1,14 @@
+# General Noise
+.*
+!.git*
+ 
+# Xcode Noise
+*/build
+*.pbxuser
+*.mode1v3
+*~.nib
+*~.xib
+ 
+# Mac OS X Noise
+*.swp
+
