@@ -115,7 +115,7 @@
 - (void)skipLineComment
 {
     [self skipCharacter];   // '/'
-
+    
     while ([self hasMoreCharacters]) {
         unichar c = [self getNextCharacter];
         if (c == '\r' || c == '\n') {
@@ -161,7 +161,7 @@
     unichar c1 = [self getNextCharacter];
     
     int stringEdgeType;     // 0:Double quotation, 1:Single quotation
-
+    
     if (c1 == '"') {
         stringEdgeType = 0;
     } else if (c1 == '\'') {
@@ -191,7 +191,7 @@
             [ret appendFormat:@"%C", c];
         }
     }
-
+    
     return ret;
 }
 
@@ -217,14 +217,14 @@
                                        reason:@"Illegal character appeared."
                                      userInfo:nil];
     }
-
+    
     return [NSNumber numberWithBool:NO];
 }
 
 - (NSNumber *)parseNumber
 {
     NSCharacterSet *numberSet = [NSCharacterSet characterSetWithCharactersInString:@"+-.e0123456789"];
-
+    
     NSMutableString *numberStr = [NSMutableString string];
     
     BOOL isFloat = NO;
@@ -263,20 +263,20 @@
                                          userInfo:nil];
         }
     }
-
+    
     return ret;
 }
 
 - (NSNull *)parseNull
 {
     NSString *str = [self getNextString:4];
-
+    
     if (![str isEqualToString:@"null"]) {
         @throw [NSException exceptionWithName:@"JSON Parsing Error"
                                        reason:@"Illegal character appeared."
                                      userInfo:nil];
     }
-
+    
     return [NSNull null];
 }
 
@@ -285,18 +285,21 @@
     NSMutableArray *ret = [NSMutableArray array];
     
     [self skipCharacter];   // '['
-
-    // Check for empty array
-    if ([self lookAtNextCharacter] == ']') {
-        [self skipCharacter];
-        return ret;
-    }
     
     while (YES) {
         [self skipWhiteSpaces];
-
+        
+        // Check for empty array or sudden end
+        if ([self lookAtNextCharacter] == ']') {
+            [self skipCharacter];
+            return ret;
+        }
+        
         id anObj = [self parseObject];
         [ret addObject:anObj];
+#ifdef __DEBUG__
+        NSLog(@"array(%@)", anObj);
+#endif
         
         [self skipWhiteSpaces];
         
@@ -309,7 +312,7 @@
                                          userInfo:nil];
         }
     }
-
+    
     return ret;
 }
 
@@ -318,17 +321,20 @@
     NSMutableDictionary *ret = [NSMutableDictionary dictionary];
     
     [self skipCharacter];   // '{'
-
-    // Check for empty table
-    if ([self lookAtNextCharacter] == '}') {
-        [self skipCharacter];
-        return ret;
-    }
     
     while (YES) {
         [self skipWhiteSpaces];
         
+        // Check for empty table or sudden end
+        if ([self lookAtNextCharacter] == '}') {
+            [self skipCharacter];
+            return ret;
+        }
+        
         NSString *keyStr = [self parseString];
+#ifdef __DEBUG__
+        NSLog(@"hash-key: %@", keyStr);
+#endif
         
         [self skipWhiteSpaces];
         
@@ -342,8 +348,11 @@
         [self skipWhiteSpaces];
         
         id valueObj = [self parseObject];
-
+        
         [ret setObject:valueObj forKey:keyStr];
+#ifdef __DEBUG__
+        NSLog(@"hash(%@, %@)", keyStr, valueObj);
+#endif
         
         [self skipWhiteSpaces];
         
@@ -394,7 +403,7 @@
     
     while ([self hasMoreCharacters]) {
         [self skipWhiteSpaces];
-
+        
         unichar c = [self lookAtNextCharacter];
         
         // Comment
