@@ -6,7 +6,7 @@
 //  Copyright 2009 Satoshi Numata. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
 
 
 @interface SZJsonParser : NSObject {
@@ -19,6 +19,13 @@
 - (id)initWithSource:(NSString *)source;
 
 - (id)parse;
+
+@end
+
+
+@interface NSString (JsonParser)
+
+- (id)jsonObject;
 
 @end
 

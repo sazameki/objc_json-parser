@@ -156,6 +156,23 @@
     }
 }
 
+- (void)skipWhiteSpacesAndComments
+{
+    unichar c = [self lookAtNextCharacter];
+    
+    while (YES) {
+        if (isspace((int)c)) {
+            [self skipWhiteSpaces];
+        } else if (c == '/') {
+            [self skipComment];
+        } else {
+            break;
+        }
+        
+        c = [self lookAtNextCharacter];
+    }
+}
+
 - (NSString *)parseString
 {
     unichar c1 = [self getNextCharacter];
@@ -177,18 +194,49 @@
     BOOL isEscaped = NO;
     while ([self hasMoreCharacters]) {
         unichar c = [self getNextCharacter];
-        if (stringEdgeType == 0 && c == '"' || stringEdgeType == 1 && c == '\'') {
-            if (isEscaped) {
-                isEscaped = NO;
-            } else {
-                break;
-            }
-        }
-        if (!isEscaped && c == '\\') {
-            isEscaped = YES;
+        if (!isEscaped && (stringEdgeType == 0 && c == '"' || stringEdgeType == 1 && c == '\'')) {
+            break;
         }
         if (!isEscaped) {
-            [ret appendFormat:@"%C", c];
+            if (c == '\\') {
+                isEscaped = YES;
+            } else {
+                [ret appendFormat:@"%C", c];
+            }
+        } else {
+            if (c == '"') {
+                [ret appendString:@"\""];
+            } else if (c == '\'') {
+                [ret appendString:@"'"];
+            } else if (c == '/') {
+                [ret appendString:@"/"];
+            } else if (c == 'b') {
+                [ret appendString:@"\b"];
+            } else if (c == 'f') {
+                [ret appendString:@"\f"];
+            } else if (c == 'n') {
+                [ret appendString:@"\n"];
+            } else if (c == 'r') {
+                [ret appendString:@"\r"];
+            } else if (c == 't') {
+                [ret appendString:@"\t"];
+            } else if (c == 'u') {
+                NSString *fourHexDigits = [self getNextString:4];
+                NSScanner *scanner = [NSScanner scannerWithString:fourHexDigits];
+                unsigned charCode;
+                if ([scanner scanHexInt:&charCode]) {
+                    [ret appendFormat:@"%C", charCode];
+                } else {
+                    @throw [NSException exceptionWithName:@"JSON Parsing Error"
+                                                   reason:[NSString stringWithFormat:@"Illegal unicode character (u%@).", fourHexDigits]
+                                                 userInfo:nil];
+                }
+            } else {
+                @throw [NSException exceptionWithName:@"JSON Parsing Error"
+                                               reason:[NSString stringWithFormat:@"Illegal string escaped character (%C).", c]
+                                             userInfo:nil];
+            }
+            isEscaped = NO;
         }
     }
     
@@ -223,7 +271,7 @@
 
 - (NSNumber *)parseNumber
 {
-    NSCharacterSet *numberSet = [NSCharacterSet characterSetWithCharactersInString:@"+-.e0123456789"];
+    NSCharacterSet *numberSet = [NSCharacterSet characterSetWithCharactersInString:@"+-.eE0123456789"];
     
     NSMutableString *numberStr = [NSMutableString string];
     
@@ -234,7 +282,7 @@
         if (![numberSet characterIsMember:c]) {
             break;
         }
-        if (c == '.' || c == 'e') {
+        if (c == '.' || c == 'e' || c == 'E') {
             isFloat = YES;
         }
         [numberStr appendFormat:@"%C", c];
@@ -287,21 +335,18 @@
     [self skipCharacter];   // '['
     
     while (YES) {
-        [self skipWhiteSpaces];
+        [self skipWhiteSpacesAndComments];
         
         // Check for empty array or sudden end
         if ([self lookAtNextCharacter] == ']') {
             [self skipCharacter];
-            return ret;
+            break;
         }
         
         id anObj = [self parseObject];
         [ret addObject:anObj];
-#ifdef __DEBUG__
-        NSLog(@"array(%@)", anObj);
-#endif
         
-        [self skipWhiteSpaces];
+        [self skipWhiteSpacesAndComments];
         
         unichar c = [self getNextCharacter];
         if (c == ']') {
@@ -323,20 +368,17 @@
     [self skipCharacter];   // '{'
     
     while (YES) {
-        [self skipWhiteSpaces];
+        [self skipWhiteSpacesAndComments];
         
         // Check for empty table or sudden end
         if ([self lookAtNextCharacter] == '}') {
             [self skipCharacter];
-            return ret;
+            break;
         }
         
         NSString *keyStr = [self parseString];
-#ifdef __DEBUG__
-        NSLog(@"hash-key: %@", keyStr);
-#endif
         
-        [self skipWhiteSpaces];
+        [self skipWhiteSpacesAndComments];
         
         unichar c1 = [self getNextCharacter];
         if (c1 != ':') {
@@ -345,16 +387,13 @@
                                          userInfo:nil];
         }
         
-        [self skipWhiteSpaces];
+        [self skipWhiteSpacesAndComments];
         
         id valueObj = [self parseObject];
         
         [ret setObject:valueObj forKey:keyStr];
-#ifdef __DEBUG__
-        NSLog(@"hash(%@, %@)", keyStr, valueObj);
-#endif
         
-        [self skipWhiteSpaces];
+        [self skipWhiteSpacesAndComments];
         
         unichar c2 = [self getNextCharacter];
         if (c2 == '}') {
@@ -371,6 +410,8 @@
 
 - (id)parseObject
 {
+    [self skipWhiteSpacesAndComments];
+
     unichar c = [self lookAtNextCharacter];
     
     if (c == '"' || c == '\'') {
@@ -398,41 +439,9 @@
 
 - (id)parseImpl
 {
-    id rootObject = nil;
     mPos = 0;
-    
-    while ([self hasMoreCharacters]) {
-        [self skipWhiteSpaces];
-        
-        unichar c = [self lookAtNextCharacter];
-        
-        // Comment
-        if (c == '/') {
-            [self skipComment];
-            continue;
-        }
-        
-        // Array
-        else if (c == '[') {
-            rootObject = [self parseArray];
-            break;
-        }
-        
-        // Hash table
-        else if (c == '{') {
-            rootObject = [self parseHashTable];
-            break;
-        }
-        
-        // Otherwise
-        else {
-            @throw [NSException exceptionWithName:@"JSON Parsing Error"
-                                           reason:[NSString stringWithFormat:@"Illegal Start Character: \'%C\' (0x%02x)", c, c]
-                                         userInfo:nil];
-        }
-    }
-    
-    return rootObject;    
+
+    return [self parseObject];
 }
 
 
@@ -449,6 +458,24 @@
         NSLog(@"JSON Parsing Error: %@", [e reason]);
     }
     return ret;
+}
+
+@end
+
+
+#pragma mark -
+
+@implementation NSString (JsonParser)
+
+- (id)jsonObject
+{
+    SZJsonParser *parser = [[SZJsonParser alloc] initWithSource:self];
+    
+    id obj = [parser parse];
+    
+    [parser release];
+    
+    return obj;
 }
 
 @end
