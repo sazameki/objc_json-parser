@@ -1,14 +1,11 @@
-JSON Parser written in Objective-C (Mac OS X / iPhone)
+Sazameki JSON Parser written in Objective-C (Mac OS X / iPhone)
 
-This parser is compliant with the JSON (JavaScript Object Notation) specification introduced at http://www.json.org/, and it is able to parse JavaScript sources with comments or "comma without following object".
+This parser is compliant with the JSON (JavaScript Object Notation) specification introduced at http://www.json.org/, and it is able to parse JavaScript sources with embedded comments or trailing commas in arrays or hash tables.
 
 
 << How to use >>
 
-1. Add 2 files to your project.
-
-    - SZJsonParser.h
-    - SZJsonParser.m
+1. Add SZJsonParser.* to your project.
 
 2. Write your code.
 
@@ -21,7 +18,7 @@ This parser is compliant with the JSON (JavaScript Object Notation) specificatio
 
 << License >>
 
-JSON Objective-C Parser is provided under the terms of the MIT license.
+Sazameki JSON Parser written in Objective-C is provided under the terms of the MIT license.
 
 Copyright © 2009 Satoshi Numata, Ph.D.
 
