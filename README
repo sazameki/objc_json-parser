@@ -1,6 +1,6 @@
 JSON Parser written in Objective-C (Mac OS X / iPhone)
 
-This parser is compliant with the JSON (JavaScript Object Notation) specification intruduced at http://www.json.org/, and it is able to parse JavaScript sources with comments or "comma without following object".
+This parser is compliant with the JSON (JavaScript Object Notation) specification introduced at http://www.json.org/, and it is able to parse JavaScript sources with comments or "comma without following object".
 
 
 << How to use >>
@@ -11,6 +11,8 @@ This parser is compliant with the JSON (JavaScript Object Notation) specificatio
     - SZJsonParser.m
 
 2. Write your code.
+
+    #import "SZJsonParser.h"
 
     NSString *str = @"[ 'Apple', 'Banana' ]";
     id obj = [str jsonObject];  // obj will be an array or a dictionary
