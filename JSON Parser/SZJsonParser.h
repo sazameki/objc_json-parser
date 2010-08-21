@@ -17,6 +17,7 @@
 }
 
 - (id)initWithSource:(NSString *)source;
+- (id)initWithData:(NSData *)data;
 
 - (id)parse;
 
