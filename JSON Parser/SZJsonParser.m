@@ -9,7 +9,7 @@
 #import "SZJsonParser.h"
 
 
-@interface SZJsonParser ()
+@interface SZJsonParser (private)
 
 - (BOOL)hasMoreCharacters;
 - (unichar)lookAtNextCharacter;
@@ -43,6 +43,12 @@
         mLength = [source length];
     }
     return self;
+}
+
+- (id)initWithData:(NSData *)data
+{
+	NSString *source = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
+	return [self initWithSource:source];
 }
 
 - (void)dealloc
